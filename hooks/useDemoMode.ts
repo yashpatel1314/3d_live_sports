@@ -60,18 +60,20 @@ export function useDemoMode(enabled: boolean) {
         return;
       }
 
-      const { text, delay } = DEMO_PLAYS[index];
+      const { text } = DEMO_PLAYS[index];
       const nextDelay = index === 0 ? 500 : DEMO_PLAYS[index].delay - DEMO_PLAYS[index - 1].delay;
 
       const t = setTimeout(() => {
-        const parsed = parsePlay(text, index % 2 === 0 ? 'away' : 'home');
+        // Alternate plays between away (GSW id='9') and home (BOS id='2')
+        const teamId = index % 2 === 0 ? DEMO_GAME.awayTeam.id : DEMO_GAME.homeTeam.id;
+        const parsed = parsePlay(text, teamId);
         setLatestPlay(parsed);
         setPlays((prev) => [parsed, ...prev].slice(0, 50));
 
         // Update score
         if (parsed.points > 0) {
           setGame((g) => {
-            const isHome = parsed.teamId === 'home';
+            const isHome = parsed.teamId === DEMO_GAME.homeTeam.id;
             return {
               ...g,
               homeTeam: isHome ? { ...g.homeTeam, score: g.homeTeam.score + parsed.points } : g.homeTeam,

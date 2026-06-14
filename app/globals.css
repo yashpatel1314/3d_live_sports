@@ -2,39 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ─────────────────────────────────────────────────────────── */
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 8, 8, 20;
-  --background-end-rgb: 12, 20, 12;
+  /* Surfaces */
+  --bg:         #07071a;
+  --surface-1:  rgba(255, 255, 255, 0.04);
+  --surface-2:  rgba(255, 255, 255, 0.07);
+
+  /* Borders */
+  --border:     rgba(255, 255, 255, 0.08);
+  --border-hi:  rgba(255, 255, 255, 0.16);
+
+  /* Text */
+  --text-1: rgba(255, 255, 255, 0.96);
+  --text-2: rgba(255, 255, 255, 0.52);
+  --text-3: rgba(255, 255, 255, 0.26);
+
+  /* Accent */
+  --accent:     #FF6B00;
+  --accent-dim: rgba(255, 107, 0, 0.14);
+}
+
+/* ─── Base ───────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      rgb(var(--background-start-rgb)),
-      rgb(var(--background-end-rgb))
-    )
-    fixed;
-  min-height: 100vh;
+  background-color: var(--bg);
+  color: var(--text-1);
+  min-height: 100svh;
+  font-feature-settings: 'ss01', 'cv01';
 }
 
-/* Custom scrollbar */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 3px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+.scrollbar-thin::-webkit-scrollbar { width: 3px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 99px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
 }
 
-/* Prevent overflow from 3D canvas */
-canvas {
-  outline: none;
+/* ─── Canvas ─────────────────────────────────────────────────────────────────── */
+canvas { outline: none; }
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

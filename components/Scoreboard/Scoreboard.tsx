@@ -13,73 +13,74 @@ export function Scoreboard({ game, latestPlay }: ScoreboardProps) {
   const { homeTeam, awayTeam, status } = game;
 
   return (
-    <div className="relative w-full">
-      {/* Main scoreboard */}
+    <div
+      className="relative rounded-xl overflow-hidden"
+      style={{
+        background: 'rgba(7, 7, 26, 0.82)',
+        backdropFilter: 'blur(24px) saturate(1.6)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+        border: '1px solid rgba(255,255,255,0.09)',
+      }}
+    >
+      {/* Team color bar */}
       <div
-        className="relative rounded-2xl overflow-hidden shadow-2xl border border-white/10"
-        style={{
-          background: 'linear-gradient(135deg, #0d0d1a 0%, #1a1a2e 50%, #0d0d1a 100%)',
-        }}
-      >
-        {/* Top accent bar */}
-        <div
-          className="h-1 w-full"
-          style={{
-            background: `linear-gradient(90deg, ${awayTeam.color}, ${homeTeam.color})`,
-          }}
-        />
+        className="absolute top-0 left-0 right-0 h-px"
+        style={{ background: `linear-gradient(90deg, ${awayTeam.color}e0, ${homeTeam.color}e0)` }}
+      />
 
-        <div className="px-4 py-3">
-          {/* Period + clock */}
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <div className="text-xs font-semibold uppercase tracking-widest text-white/50">
+      <div className="px-4 pt-3.5 pb-3">
+        {/* Main row: away — clock — home */}
+        <div className="flex items-center gap-3">
+          {/* Away */}
+          <TeamHud team={awayTeam} side="left" />
+
+          {/* Clock */}
+          <div className="flex-1 flex flex-col items-center gap-0.5">
+            <div className="text-[11px] font-semibold text-white/36 tracking-wide">
               {status.isComplete ? 'FINAL' : status.isActive ? `Q${status.period}` : 'Upcoming'}
             </div>
-            {status.isActive && (
-              <>
-                <div className="w-1 h-1 rounded-full bg-red-500 animate-pulse" />
-                <div className="text-sm font-mono text-white/70">{status.displayClock}</div>
-              </>
+            {status.isActive ? (
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-base font-mono font-semibold text-white/88 tabular-nums">
+                  {status.displayClock}
+                </span>
+              </div>
+            ) : (
+              <span className="text-white/20 text-xs">{status.description}</span>
             )}
           </div>
 
-          {/* Teams + scores */}
-          <div className="flex items-center justify-between gap-4">
-            {/* Away team */}
-            <TeamBlock team={awayTeam} side="left" />
-
-            {/* VS separator */}
-            <div className="flex flex-col items-center">
-              <div className="text-white/20 text-xs font-bold">VS</div>
-            </div>
-
-            {/* Home team */}
-            <TeamBlock team={homeTeam} side="right" />
-          </div>
+          {/* Home */}
+          <TeamHud team={homeTeam} side="right" />
         </div>
 
-        {/* Latest play banner */}
+        {/* Latest play — compact single line */}
         <AnimatePresence>
-          {latestPlay && latestPlay.rawText && (
+          {latestPlay?.rawText && (
             <motion.div
               key={latestPlay.rawText}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.4 }}
-              className="px-4 pb-3"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+              className="overflow-hidden"
             >
-              <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-center">
-                <span className="text-xs mr-2">{PLAY_EMOJI[latestPlay.type] ?? '🏀'}</span>
-                <span className="text-white/80 text-xs">{latestPlay.rawText}</span>
-                {latestPlay.points > 0 && (
-                  <span
-                    className="ml-2 font-bold text-xs px-1.5 py-0.5 rounded"
-                    style={{ backgroundColor: '#FF6B0030', color: '#FF6B00' }}
-                  >
-                    +{latestPlay.points}
-                  </span>
-                )}
+              <div
+                className="mt-2.5 px-3 py-1.5 rounded-lg"
+                style={{ background: 'rgba(255,255,255,0.04)' }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {latestPlay.points > 0 && (
+                    <span
+                      className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={{ color: '#FF6B00', background: 'rgba(255,107,0,0.14)' }}
+                    >
+                      +{latestPlay.points}
+                    </span>
+                  )}
+                  <p className="text-white/46 text-[11px] truncate">{latestPlay.rawText}</p>
+                </div>
               </div>
             </motion.div>
           )}
@@ -89,45 +90,31 @@ export function Scoreboard({ game, latestPlay }: ScoreboardProps) {
   );
 }
 
-function TeamBlock({ team, side }: { team: GameData['homeTeam']; side: 'left' | 'right' }) {
+function TeamHud({ team, side }: { team: GameData['homeTeam']; side: 'left' | 'right' }) {
+  const isRight = side === 'right';
   return (
-    <div className={`flex-1 flex ${side === 'left' ? 'flex-row' : 'flex-row-reverse'} items-center gap-3`}>
-      {/* Logo */}
+    <div className={`flex items-center gap-2.5 ${isRight ? 'flex-row-reverse' : ''}`}>
+      {/* Logo mark */}
       <div
-        className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
-        style={{ backgroundColor: `${team.color}22`, border: `2px solid ${team.color}44` }}
+        className="w-9 h-9 rounded-full shrink-0 flex items-center justify-center"
+        style={{ background: `${team.color}1e`, border: `1.5px solid ${team.color}44` }}
       >
         {team.logo ? (
-          <Image src={team.logo} alt={team.abbreviation} width={36} height={36} className="object-contain" />
+          <Image src={team.logo} alt={team.abbreviation} width={26} height={26} className="object-contain" />
         ) : (
-          <span className="text-lg font-black" style={{ color: team.color }}>
+          <span className="text-[13px] font-black" style={{ color: team.color }}>
             {team.abbreviation.slice(0, 2)}
           </span>
         )}
       </div>
 
       {/* Name + score */}
-      <div className={`flex flex-col ${side === 'left' ? 'items-start' : 'items-end'}`}>
-        <div className="text-white/50 text-xs uppercase tracking-wider font-semibold">
+      <div className={`flex flex-col ${isRight ? 'items-end' : 'items-start'}`}>
+        <span className="text-[10px] font-semibold text-white/36 tracking-wider uppercase">
           {team.abbreviation}
-        </div>
+        </span>
         <AnimatedScore score={team.score} teamColor={team.color} side={side} />
-        <div className="text-white/30 text-xs">{team.homeAway === 'home' ? 'Home' : 'Away'}</div>
       </div>
     </div>
   );
 }
-
-const PLAY_EMOJI: Record<string, string> = {
-  THREE_POINTER: '🔥',
-  FADEAWAY: '🏀',
-  DUNK: '💥',
-  ALLEY_OOP: '🚀',
-  LAYUP: '🏀',
-  FREE_THROW: '🎯',
-  JUMPER: '🏀',
-  HOOK_SHOT: '🪝',
-  PUTBACK: '💪',
-  MISS: '😮',
-  UNKNOWN: '🏀',
-};
