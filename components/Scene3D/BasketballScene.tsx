@@ -59,22 +59,18 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
     lookAtTarget.current.set(0, 2, isAway ? 10 : -10);
 
     // Camera: always OUTSIDE the court boundary (|z| > 14.1) so the full half-court is visible.
-    // zSign * N places the camera on the center-court side of the active basket.
-    // x offset gives a broadcast side-angle; y controls height.
+    // x=0 keeps both ends perfectly symmetric — the court looks identical from either direction.
     if (play.type === 'DUNK' || play.type === 'ALLEY_OOP') {
-      // Low, dramatic angle — still outside court
-      cameraRef.current.set(8, 11, zSign * 20);
+      cameraRef.current.set(0, 11, zSign * 20);
     } else if (play.type === 'THREE_POINTER') {
       const dist = (play.distance ?? 26) / 3.33;
-      // Pull further back for long range — cap at 26 so we don't fly into space
-      cameraRef.current.set(8, 14, zSign * Math.min(dist + 16, 26));
+      cameraRef.current.set(0, 14, zSign * Math.min(dist + 16, 26));
     } else if (play.type === 'FADEAWAY') {
-      cameraRef.current.set(8, 13, zSign * 21);
+      cameraRef.current.set(0, 13, zSign * 21);
     } else if (play.type === 'FREE_THROW') {
-      // Straight-on, slightly higher — no side angle for FT
-      cameraRef.current.set(3, 13, zSign * 22);
+      cameraRef.current.set(0, 13, zSign * 22);
     } else {
-      cameraRef.current.set(8, 13, zSign * 20);
+      cameraRef.current.set(0, 13, zSign * 20);
     }
   }, [play, basketZ]);
 
@@ -108,15 +104,18 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
 
   return (
     <>
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={0.65} />
+      {/* Overhead arena light — centered so both basket ends are lit identically */}
       <directionalLight
-        position={[10, 20, 10]}
-        intensity={1.2}
+        position={[0, 28, 0]}
+        intensity={1.1}
         castShadow
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
-      <directionalLight position={[-10, 15, -5]} intensity={0.4} color="#FFE0A0" />
+      {/* Symmetric fill lights — equal intensity front and back so neither end is brighter */}
+      <directionalLight position={[0, 18, 12]} intensity={0.35} color="#FFE0A0" />
+      <directionalLight position={[0, 18, -12]} intensity={0.35} color="#FFE0A0" />
       {/* Basket lights on both ends */}
       <pointLight position={[0, 15, -12.5]} intensity={0.6} color="#FFD080" />
       <pointLight position={[0, 15, 12.5]} intensity={0.6} color="#FFD080" />
