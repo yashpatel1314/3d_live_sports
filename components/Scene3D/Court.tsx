@@ -55,7 +55,6 @@ export function BasketballCourt() {
   );
 }
 
-// Court boundary lines as thin raised boxes so they're visible from any angle
 function CourtBorder({ position, size }: { position: [number, number, number]; size: [number, number] }) {
   return (
     <mesh position={[position[0], 0.025, position[2]]}>
@@ -73,8 +72,41 @@ function PaintArea({ basketZ }: { basketZ: number }) {
   const freeThrowZ = basketZ + towardCenter * 4.5;
   const paintCenterZ = (baselineZ + freeThrowZ) / 2;
   const paintLen = Math.abs(freeThrowZ - baselineZ); // ≈ 6.1 units
-  const arcRotY = towardCenter > 0 ? Math.PI : 0;
-  const arcRotYInside = towardCenter > 0 ? 0 : Math.PI;
+
+  // Tube-center radius for free throw circle (midpoint of NBA 6ft inner/outer)
+  const FT_R = 1.79;
+  // Tube-center radius for restricted area arc
+  const RA_R = 1.19;
+
+  // Free throw circle — solid outer half (faces toward center court)
+  const ftOuter = useMemo(() => {
+    const pts: Vector3[] = [];
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI;
+      pts.push(new Vector3(FT_R * Math.cos(theta), 0, towardCenter * FT_R * Math.sin(theta)));
+    }
+    return new CatmullRomCurve3(pts);
+  }, [basketZ]);
+
+  // Free throw circle — inner half (faces toward basket, lower opacity = dashed look)
+  const ftInner = useMemo(() => {
+    const pts: Vector3[] = [];
+    for (let i = 0; i <= 32; i++) {
+      const theta = (i / 32) * Math.PI;
+      pts.push(new Vector3(FT_R * Math.cos(theta), 0, -towardCenter * FT_R * Math.sin(theta)));
+    }
+    return new CatmullRomCurve3(pts);
+  }, [basketZ]);
+
+  // Restricted area arc — solid half facing center court
+  const restrictedCurve = useMemo(() => {
+    const pts: Vector3[] = [];
+    for (let i = 0; i <= 24; i++) {
+      const theta = (i / 24) * Math.PI;
+      pts.push(new Vector3(RA_R * Math.cos(theta), 0, towardCenter * RA_R * Math.sin(theta)));
+    }
+    return new CatmullRomCurve3(pts);
+  }, [basketZ]);
 
   return (
     <group>
@@ -84,22 +116,22 @@ function PaintArea({ basketZ }: { basketZ: number }) {
         <meshStandardMaterial color="#C85E20" opacity={0.35} transparent />
       </mesh>
 
-      {/* Free throw line — raised box so it's visible from any angle */}
+      {/* Free throw line — raised box */}
       <mesh position={[0, 0.025, freeThrowZ]}>
         <boxGeometry args={[4.8, 0.05, 0.1]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
 
-      {/* Free throw circle — outside half (toward center court) */}
-      <mesh rotation={[-Math.PI / 2, arcRotY, 0]} position={[0, 0.016, freeThrowZ]}>
-        <ringGeometry args={[1.7, 1.88, 64, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      {/* Free throw circle — solid outer half (toward center court) */}
+      <mesh position={[0, 0.013, freeThrowZ]}>
+        <tubeGeometry args={[ftOuter, 32, 0.07, 8, false]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
 
-      {/* Free throw circle — inside half (dashed look via lower opacity) */}
-      <mesh rotation={[-Math.PI / 2, arcRotYInside, 0]} position={[0, 0.017, freeThrowZ]}>
-        <ringGeometry args={[1.7, 1.88, 64, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
+      {/* Free throw circle — inner half (toward basket, lower opacity for dashed look) */}
+      <mesh position={[0, 0.013, freeThrowZ]}>
+        <tubeGeometry args={[ftInner, 32, 0.07, 8, false]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.45} transparent />
       </mesh>
 
       {/* Lane (boundary) lines — raised boxes */}
@@ -112,10 +144,10 @@ function PaintArea({ basketZ }: { basketZ: number }) {
         <meshStandardMaterial color="#ffffff" />
       </mesh>
 
-      {/* Restricted area arc — opens toward center court */}
-      <mesh rotation={[-Math.PI / 2, arcRotY, 0]} position={[0, 0.016, basketZ]}>
-        <ringGeometry args={[1.10, 1.28, 48, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
+      {/* Restricted area arc — tube opens toward center court */}
+      <mesh position={[0, 0.013, basketZ]}>
+        <tubeGeometry args={[restrictedCurve, 24, 0.07, 8, false]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
     </group>
   );
@@ -123,12 +155,8 @@ function PaintArea({ basketZ }: { basketZ: number }) {
 
 // ─── 3-point line ─────────────────────────────────────────────────────────────
 //
-//  Arc inner radius: 7.05 units (≈ 23.5 ft)
-//  Corner x:         ±6.6 units (22 ft from basket center)
-//  Arc spans corner-to-corner only — thetaStart = acos(6.6/7.05) ≈ 20.6°
-//
-//  Uses TubeGeometry (3D tube) so the arc is visible from any camera angle.
-//  Flat ring geometry disappears when viewed edge-on; a tube does not.
+//  Single seamless TubeGeometry: corner straight → arc → corner straight.
+//  Corner x is derived from midR so the junction coordinates match exactly.
 
 function ThreePointArc({ basketZ }: { basketZ: number }) {
   const towardCenter = basketZ < 0 ? 1 : -1;
@@ -136,50 +164,55 @@ function ThreePointArc({ basketZ }: { basketZ: number }) {
 
   const innerR = 7.05;
   const midR = 7.15;
-  const cornerX = 6.6;
-  const arcJunctionZ = Math.sqrt(innerR * innerR - cornerX * cornerX); // ≈ 2.477
-  const thetaStart = Math.acos(cornerX / innerR);   // ≈ 0.359 rad
+  const thetaStart = Math.acos(6.6 / innerR);      // ≈ 0.359 rad (NBA 22 ft corner)
   const thetaLength = Math.PI - 2 * thetaStart;     // ≈ 2.423 rad
 
-  const baselineDist = 1.6;
-  const overlapExtend = 0.4;
-  const straightLen = baselineDist + arcJunctionZ + overlapExtend;
-  const straightCenterZ = towardCenter * (arcJunctionZ + overlapExtend - baselineDist) / 2;
+  // Exact tube-center coordinates at the arc/straight junction
+  const juncX = midR * Math.cos(thetaStart);        // ≈ 6.694
+  const juncZ = midR * Math.sin(thetaStart);        // ≈ 2.512
 
-  // Build the arc center-line path in local space relative to the group.
-  // arcRotY=PI  → point at theta maps to (-r·cosθ,  0, r·sinθ)  [HOME basket]
-  // arcRotY=0   → point at theta maps to ( r·cosθ,  0, -r·sinθ) [AWAY basket]
-  const arcCurve = useMemo(() => {
+  // Local z coords (relative to group positioned at basketZ)
+  const baselineLocalZ = (basketZ < 0 ? -14.1 : 14.1) - basketZ;  // −1.6 HOME, +1.6 AWAY
+  const junctionLocalZ = towardCenter * juncZ;                       // +2.512 HOME, −2.512 AWAY
+
+  const fullPath = useMemo(() => {
     const pts: Vector3[] = [];
-    const segs = 48;
-    for (let i = 0; i <= segs; i++) {
-      const theta = thetaStart + (i / segs) * thetaLength;
-      const c = Math.cos(theta);
-      const s = Math.sin(theta);
-      pts.push(
-        arcRotY === Math.PI
-          ? new Vector3(-midR * c, 0, midR * s)
-          : new Vector3(midR * c, 0, -midR * s),
-      );
+    const SSEGS = 6;   // points per corner straight (excluding shared junction endpoints)
+    const ASEGS = 48;  // points along arc
+
+    if (arcRotY === Math.PI) {
+      // HOME basket: left corner baseline → left junction → arc → right junction → right corner baseline
+      for (let i = 0; i < SSEGS; i++) {
+        pts.push(new Vector3(-juncX, 0, baselineLocalZ + (i / SSEGS) * (junctionLocalZ - baselineLocalZ)));
+      }
+      for (let i = 0; i <= ASEGS; i++) {
+        const theta = thetaStart + (i / ASEGS) * thetaLength;
+        pts.push(new Vector3(-midR * Math.cos(theta), 0, midR * Math.sin(theta)));
+      }
+      for (let i = 1; i <= SSEGS; i++) {
+        pts.push(new Vector3(juncX, 0, junctionLocalZ + (i / SSEGS) * (baselineLocalZ - junctionLocalZ)));
+      }
+    } else {
+      // AWAY basket: right corner baseline → right junction → arc → left junction → left corner baseline
+      for (let i = 0; i < SSEGS; i++) {
+        pts.push(new Vector3(juncX, 0, baselineLocalZ + (i / SSEGS) * (junctionLocalZ - baselineLocalZ)));
+      }
+      for (let i = 0; i <= ASEGS; i++) {
+        const theta = thetaStart + (i / ASEGS) * thetaLength;
+        pts.push(new Vector3(midR * Math.cos(theta), 0, -midR * Math.sin(theta)));
+      }
+      for (let i = 1; i <= SSEGS; i++) {
+        pts.push(new Vector3(-juncX, 0, junctionLocalZ + (i / SSEGS) * (baselineLocalZ - junctionLocalZ)));
+      }
     }
+
     return new CatmullRomCurve3(pts);
-  }, [basketZ]); // basketZ determines arcRotY, thetaStart, thetaLength
+  }, [basketZ]);
 
   return (
     <group position={[0, 0.013, basketZ]}>
-      {/* Corner straight lines — boxes so they stay visible edge-on */}
-      <mesh position={[-cornerX, 0, straightCenterZ]}>
-        <boxGeometry args={[0.1, 0.05, straightLen]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[cornerX, 0, straightCenterZ]}>
-        <boxGeometry args={[0.1, 0.05, straightLen]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-
-      {/* 3PT arc — tube so it's visible from any angle */}
       <mesh>
-        <tubeGeometry args={[arcCurve, 48, 0.07, 8, false]} />
+        <tubeGeometry args={[fullPath, 128, 0.07, 8, false]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
     </group>
