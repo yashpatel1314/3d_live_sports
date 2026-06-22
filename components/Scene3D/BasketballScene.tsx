@@ -39,8 +39,8 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
   // Camera position target
   const cameraRef = useRef<Vector3>(new Vector3(0, 12, 20));
   // LookAt: two refs so we can lerp smoothly between sides
-  const lookAtTarget = useRef<Vector3>(new Vector3(0, 2, -10));
-  const lookAtCurrent = useRef<Vector3>(new Vector3(0, 2, -10));
+  const lookAtTarget = useRef<Vector3>(new Vector3(0, 2, -8));
+  const lookAtCurrent = useRef<Vector3>(new Vector3(0, 2, -8));
 
   useEffect(() => {
     if (!play || play === lastPlay.current) return;
@@ -52,25 +52,21 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
 
     // Which side of the court this play is on
     const isAway = basketZ > 0;
-    // zSign: which direction from basket toward center (+1 for home end, -1 for away end)
     const zSign = isAway ? -1 : 1;
 
-    // LookAt: aim toward the active basket (not center court)
-    lookAtTarget.current.set(0, 2, isAway ? 10 : -10);
+    lookAtTarget.current.set(0, 2, isAway ? 8 : -8);
 
-    // Camera: always OUTSIDE the court boundary (|z| > 14.1) so the full half-court is visible.
-    // Use zSign * 8 for x so the diagonal angle is the same relative to each basket.
     if (play.type === 'DUNK' || play.type === 'ALLEY_OOP') {
-      cameraRef.current.set(zSign * 8, 11, zSign * 20);
+      cameraRef.current.set(3, 6, zSign * 6);
     } else if (play.type === 'THREE_POINTER') {
       const dist = (play.distance ?? 26) / 3.33;
-      cameraRef.current.set(zSign * 8, 14, zSign * Math.min(dist + 16, 26));
+      cameraRef.current.set(4, 7, basketZ + zSign * (dist + 4));
     } else if (play.type === 'FADEAWAY') {
-      cameraRef.current.set(zSign * 8, 13, zSign * 21);
+      cameraRef.current.set(5, 8, zSign * 3);
     } else if (play.type === 'FREE_THROW') {
-      cameraRef.current.set(zSign * 8, 13, zSign * 22);
+      cameraRef.current.set(3, 6, zSign * 5);
     } else {
-      cameraRef.current.set(zSign * 8, 13, zSign * 20);
+      cameraRef.current.set(4, 8, zSign * 2);
     }
   }, [play, basketZ]);
 
