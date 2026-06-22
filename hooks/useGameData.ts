@@ -16,7 +16,7 @@ export function useGameData(gameId: string | null, demo?: boolean): GameDataResu
   const [latestPlay, setLatestPlay] = useState<ParsedPlay | null>(null);
   const [loading, setLoading] = useState(true);
   const seenIds = useRef<Set<string>>(new Set());
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   useEffect(() => {
     if (!gameId || demo) {

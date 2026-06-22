@@ -9,7 +9,10 @@ const nextConfig = {
       { protocol: 'https', hostname: 'a4.espncdn.com' },
     ],
   },
-  turbopack: {},
+  webpack: (config) => {
+    config.externals = [...(config.externals || []), { canvas: 'canvas' }];
+    return config;
+  },
 };
 
 module.exports = nextConfig;

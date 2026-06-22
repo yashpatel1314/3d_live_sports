@@ -1,7 +1,6 @@
 import { GameView } from './GameView';
-import { use } from 'react';
 
-export default function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
-  const { gameId } = use(params);
+export default async function GamePage({ params }: { params: Promise<{ gameId: string }> }) {
+  const { gameId } = await params;
   return <GameView gameId={gameId} />;
 }
