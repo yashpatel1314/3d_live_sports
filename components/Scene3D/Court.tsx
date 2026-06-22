@@ -1,4 +1,6 @@
 'use client';
+import { useMemo } from 'react';
+import { Vector3, CatmullRomCurve3 } from 'three';
 
 // Scale: 1 unit ≈ 3.33 ft  |  Court: 28.2 × 15 units  |  z: ±14.1  |  x: ±7.5
 // Baskets at z = ±12.5,  baseline at z = ±14.1,  free throw line 4.5 units from basket
@@ -14,20 +16,21 @@ export function BasketballCourt() {
 
       {/* Center circle */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[1.5, 1.62, 64]} />
+        <ringGeometry args={[1.5, 1.65, 64]} />
         <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
       </mesh>
+
       {/* Center line */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <planeGeometry args={[15, 0.1]} />
+      <mesh position={[0, 0.025, 0]}>
+        <boxGeometry args={[15, 0.05, 0.1]} />
         <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
       </mesh>
 
       {/* Court boundary lines */}
-      <CourtLine position={[-7.44, 0.01, 0]} size={[0.1, 28.2]} />
-      <CourtLine position={[7.44, 0.01, 0]} size={[0.1, 28.2]} />
-      <CourtLine position={[0, 0.01, -14.05]} size={[15, 0.1]} />
-      <CourtLine position={[0, 0.01, 14.05]} size={[15, 0.1]} />
+      <CourtBorder position={[-7.44, 0, 0]} size={[0.1, 28.2]} />
+      <CourtBorder position={[7.44, 0, 0]} size={[0.1, 28.2]} />
+      <CourtBorder position={[0, 0, -14.05]} size={[15, 0.1]} />
+      <CourtBorder position={[0, 0, 14.05]} size={[15, 0.1]} />
 
       {/* Paint areas — one per basket */}
       <PaintArea basketZ={-12.5} />
@@ -52,25 +55,17 @@ export function BasketballCourt() {
   );
 }
 
-function CourtLine({ position, size }: { position: [number, number, number]; size: [number, number] }) {
+// Court boundary lines as thin raised boxes so they're visible from any angle
+function CourtBorder({ position, size }: { position: [number, number, number]; size: [number, number] }) {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={position}>
-      <planeGeometry args={size} />
+    <mesh position={[position[0], 0.025, position[2]]}>
+      <boxGeometry args={[size[0], 0.05, size[1]]} />
       <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
     </mesh>
   );
 }
 
 // ─── Paint area (key / lane) ──────────────────────────────────────────────────
-//
-//  basketZ = −12.5  →  towardCenter = +1
-//    baseline     = −14.1
-//    freeThrow    = −12.5 + 4.5 = −8.0
-//    paintCenter  = (−14.1 + −8.0) / 2 = −11.05
-//    paintLength  = 6.1
-//    arc rotation: [−π/2, π, 0]  →  semicircle opens toward +z (center)
-//
-//  basketZ = +12.5  →  towardCenter = −1  (mirror image)
 
 function PaintArea({ basketZ }: { basketZ: number }) {
   const towardCenter = basketZ < 0 ? 1 : -1;
@@ -89,10 +84,10 @@ function PaintArea({ basketZ }: { basketZ: number }) {
         <meshStandardMaterial color="#C85E20" opacity={0.35} transparent />
       </mesh>
 
-      {/* Free throw line */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, freeThrowZ]}>
-        <planeGeometry args={[4.8, 0.1]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      {/* Free throw line — raised box so it's visible from any angle */}
+      <mesh position={[0, 0.025, freeThrowZ]}>
+        <boxGeometry args={[4.8, 0.05, 0.1]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
 
       {/* Free throw circle — outside half (toward center court) */}
@@ -101,20 +96,20 @@ function PaintArea({ basketZ }: { basketZ: number }) {
         <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
 
-      {/* Free throw circle — inside half (toward baseline) — dashed look via lower opacity */}
+      {/* Free throw circle — inside half (dashed look via lower opacity) */}
       <mesh rotation={[-Math.PI / 2, arcRotYInside, 0]} position={[0, 0.017, freeThrowZ]}>
         <ringGeometry args={[1.7, 1.88, 64, 1, 0, Math.PI]} />
         <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
       </mesh>
 
-      {/* Lane (boundary) lines */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2.4, 0.011, paintCenterZ]}>
-        <planeGeometry args={[0.1, paintLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      {/* Lane (boundary) lines — raised boxes */}
+      <mesh position={[-2.4, 0.025, paintCenterZ]}>
+        <boxGeometry args={[0.1, 0.05, paintLen]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[2.4, 0.011, paintCenterZ]}>
-        <planeGeometry args={[0.1, paintLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      <mesh position={[2.4, 0.025, paintCenterZ]}>
+        <boxGeometry args={[0.1, 0.05, paintLen]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
 
       {/* Restricted area arc — opens toward center court */}
@@ -130,17 +125,17 @@ function PaintArea({ basketZ }: { basketZ: number }) {
 //
 //  Arc inner radius: 7.05 units (≈ 23.5 ft)
 //  Corner x:         ±6.6 units (22 ft from basket center)
-//  Arc junction z:   sqrt(7.05²−6.6²) ≈ 2.48 units from basket (toward center)
-//  Arc spans corner-to-corner only (not a full semicircle):
-//    thetaStart = acos(6.6 / 7.05) ≈ 20.6°, thetaLength = π − 2·thetaStart
-//  Corner straight extends 0.4 units PAST the junction into the arc zone so the
-//  arc draws cleanly on top of it — no visible gap at the corner.
+//  Arc spans corner-to-corner only — thetaStart = acos(6.6/7.05) ≈ 20.6°
+//
+//  Uses TubeGeometry (3D tube) so the arc is visible from any camera angle.
+//  Flat ring geometry disappears when viewed edge-on; a tube does not.
 
 function ThreePointArc({ basketZ }: { basketZ: number }) {
   const towardCenter = basketZ < 0 ? 1 : -1;
   const arcRotY = basketZ < 0 ? Math.PI : 0;
 
   const innerR = 7.05;
+  const midR = 7.15;
   const cornerX = 6.6;
   const arcJunctionZ = Math.sqrt(innerR * innerR - cornerX * cornerX); // ≈ 2.477
   const thetaStart = Math.acos(cornerX / innerR);   // ≈ 0.359 rad
@@ -151,22 +146,41 @@ function ThreePointArc({ basketZ }: { basketZ: number }) {
   const straightLen = baselineDist + arcJunctionZ + overlapExtend;
   const straightCenterZ = towardCenter * (arcJunctionZ + overlapExtend - baselineDist) / 2;
 
+  // Build the arc center-line path in local space relative to the group.
+  // arcRotY=PI  → point at theta maps to (-r·cosθ,  0, r·sinθ)  [HOME basket]
+  // arcRotY=0   → point at theta maps to ( r·cosθ,  0, -r·sinθ) [AWAY basket]
+  const arcCurve = useMemo(() => {
+    const pts: Vector3[] = [];
+    const segs = 48;
+    for (let i = 0; i <= segs; i++) {
+      const theta = thetaStart + (i / segs) * thetaLength;
+      const c = Math.cos(theta);
+      const s = Math.sin(theta);
+      pts.push(
+        arcRotY === Math.PI
+          ? new Vector3(-midR * c, 0, midR * s)
+          : new Vector3(midR * c, 0, -midR * s),
+      );
+    }
+    return new CatmullRomCurve3(pts);
+  }, [basketZ]); // basketZ determines arcRotY, thetaStart, thetaLength
+
   return (
     <group position={[0, 0.013, basketZ]}>
-      {/* Corner straight lines */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-cornerX, -0.002, straightCenterZ]}>
-        <planeGeometry args={[0.1, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      {/* Corner straight lines — boxes so they stay visible edge-on */}
+      <mesh position={[-cornerX, 0, straightCenterZ]}>
+        <boxGeometry args={[0.1, 0.05, straightLen]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cornerX, -0.002, straightCenterZ]}>
-        <planeGeometry args={[0.1, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      <mesh position={[cornerX, 0, straightCenterZ]}>
+        <boxGeometry args={[0.1, 0.05, straightLen]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
 
-      {/* Arc */}
-      <mesh rotation={[-Math.PI / 2, arcRotY, 0]}>
-        <ringGeometry args={[7.05, 7.25, 64, 1, thetaStart, thetaLength]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
+      {/* 3PT arc — tube so it's visible from any angle */}
+      <mesh>
+        <tubeGeometry args={[arcCurve, 48, 0.07, 8, false]} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
     </group>
   );
@@ -176,7 +190,6 @@ function ThreePointArc({ basketZ }: { basketZ: number }) {
 
 function Basket({ position, flipped }: { position: [number, number, number]; flipped?: boolean }) {
   const rimY = 3.05;
-  // Backboard sits on the baseline side of the basket
   const bbZ = flipped ? 1.1 : -1.1;
 
   return (
@@ -205,8 +218,7 @@ function Basket({ position, flipped }: { position: [number, number, number]; fli
         />
       </mesh>
 
-      {/* Net — rotation={[π,0,0]} flips cone so wide opening is at the rim (top)
-               and the narrow tip hangs down, matching a real basketball net */}
+      {/* Net */}
       <mesh position={[0, rimY - 0.3, 0]} rotation={[Math.PI, 0, 0]}>
         <coneGeometry args={[0.44, 0.6, 16, 1, true]} />
         <meshStandardMaterial color="#ffffff" wireframe opacity={0.55} transparent />
