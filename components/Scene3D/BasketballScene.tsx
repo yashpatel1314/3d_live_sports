@@ -57,16 +57,16 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
     lookAtTarget.current.set(0, 2, isAway ? 8 : -8);
 
     if (play.type === 'DUNK' || play.type === 'ALLEY_OOP') {
-      cameraRef.current.set(3, 6, zSign * 6);
+      cameraRef.current.set(zSign * 3, 6, zSign * 6);
     } else if (play.type === 'THREE_POINTER') {
       const dist = (play.distance ?? 26) / 3.33;
-      cameraRef.current.set(4, 7, basketZ + zSign * (dist + 4));
+      cameraRef.current.set(zSign * 4, 7, basketZ + zSign * (dist + 4));
     } else if (play.type === 'FADEAWAY') {
-      cameraRef.current.set(5, 8, zSign * 3);
+      cameraRef.current.set(zSign * 5, 8, zSign * 3);
     } else if (play.type === 'FREE_THROW') {
-      cameraRef.current.set(3, 6, zSign * 5);
+      cameraRef.current.set(zSign * 3, 6, zSign * 5);
     } else {
-      cameraRef.current.set(4, 8, zSign * 2);
+      cameraRef.current.set(zSign * 4, 8, zSign * 2);
     }
   }, [play, basketZ]);
 
