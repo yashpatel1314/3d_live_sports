@@ -132,13 +132,13 @@ function PaintArea({ basketZ }: { basketZ: number }) {
 
 // ─── 3-point line ─────────────────────────────────────────────────────────────
 //
-//  Arc inner radius: 7.05 units (23.5 ft)
+//  Arc inner radius: 7.05 units (≈ 23.5 ft)
 //  Corner x:         ±6.6 units (22 ft from basket center)
 //  Arc junction z:   sqrt(7.05²−6.6²) ≈ 2.48 units from basket (toward center)
-//  Arc spans from corner-to-corner only — NOT a full semicircle.
-//    thetaStart = acos(6.6 / 7.05) ≈ 20.6°
-//    thetaLength = π − 2·thetaStart ≈ 138.8°
-//  Corner straight: baseline (1.6 units behind basket) → arc junction (2.48 units ahead)
+//  Arc spans corner-to-corner only (not a full semicircle):
+//    thetaStart = acos(6.6 / 7.05) ≈ 20.6°, thetaLength = π − 2·thetaStart
+//  Corner straight extends 0.4 units PAST the junction into the arc zone so the
+//  arc draws cleanly on top of it — no visible gap at the corner.
 
 function ThreePointArc({ basketZ }: { basketZ: number }) {
   const towardCenter = basketZ < 0 ? 1 : -1;
@@ -146,33 +146,34 @@ function ThreePointArc({ basketZ }: { basketZ: number }) {
 
   const innerR = 7.05;
   const cornerX = 6.6;
-  // z-distance from basket to where the inner arc edge meets x=±cornerX
   const arcJunctionZ = Math.sqrt(innerR * innerR - cornerX * cornerX); // ≈ 2.477
-  // sweep only from one corner straight to the other, not a full semicircle
-  const thetaStart = Math.acos(cornerX / innerR);       // ≈ 0.359 rad
-  const thetaLength = Math.PI - 2 * thetaStart;         // ≈ 2.423 rad
+  const thetaStart = Math.acos(cornerX / innerR);   // ≈ 0.359 rad
+  const thetaLength = Math.PI - 2 * thetaStart;     // ≈ 2.423 rad
 
-  // corner straight: baseline (1.6 units from basket) → arc junction
+  // Extend the straight 0.4 units past the arc junction so the arc overlaps it —
+  // the arc ring sits 0.002 higher (y=0 vs y=-0.002) so it draws on top, hiding
+  // the straight's endpoint and making the corner look seamless.
   const baselineDist = 1.6;
-  const straightLen = baselineDist + arcJunctionZ;                    // ≈ 4.077
-  const straightCenterZ = towardCenter * (arcJunctionZ - baselineDist) / 2; // ≈ ±0.439
+  const overlapExtend = 0.4;
+  const straightLen = baselineDist + arcJunctionZ + overlapExtend;          // ≈ 4.477
+  const straightCenterZ = towardCenter * (arcJunctionZ + overlapExtend - baselineDist) / 2; // ≈ ±0.639
 
   return (
     <group position={[0, 0.013, basketZ]}>
-      {/* Arc — spans corner to corner only */}
-      <mesh rotation={[-Math.PI / 2, arcRotY, 0]}>
-        <ringGeometry args={[7.05, 7.22, 64, 1, thetaStart, thetaLength]} />
+      {/* Corner straight lines — sit 0.002 below arc so arc draws on top at junction */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-cornerX, -0.002, straightCenterZ]}>
+        <planeGeometry args={[0.06, straightLen]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cornerX, -0.002, straightCenterZ]}>
+        <planeGeometry args={[0.06, straightLen]} />
         <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
       </mesh>
 
-      {/* Corner straight lines — from baseline to arc junction */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-cornerX, 0, straightCenterZ]}>
-        <planeGeometry args={[0.06, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.4} transparent />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cornerX, 0, straightCenterZ]}>
-        <planeGeometry args={[0.06, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.4} transparent />
+      {/* Arc — sits above the straights (y=0) and covers their ends at the junction */}
+      <mesh rotation={[-Math.PI / 2, arcRotY, 0]}>
+        <ringGeometry args={[7.05, 7.22, 64, 1, thetaStart, thetaLength]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
       </mesh>
     </group>
   );

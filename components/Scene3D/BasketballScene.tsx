@@ -59,18 +59,18 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
     lookAtTarget.current.set(0, 2, isAway ? 10 : -10);
 
     // Camera: always OUTSIDE the court boundary (|z| > 14.1) so the full half-court is visible.
-    // x=0 keeps both ends perfectly symmetric — the court looks identical from either direction.
+    // Use zSign * 8 for x so the diagonal angle is the same relative to each basket.
     if (play.type === 'DUNK' || play.type === 'ALLEY_OOP') {
-      cameraRef.current.set(0, 11, zSign * 20);
+      cameraRef.current.set(zSign * 8, 11, zSign * 20);
     } else if (play.type === 'THREE_POINTER') {
       const dist = (play.distance ?? 26) / 3.33;
-      cameraRef.current.set(0, 14, zSign * Math.min(dist + 16, 26));
+      cameraRef.current.set(zSign * 8, 14, zSign * Math.min(dist + 16, 26));
     } else if (play.type === 'FADEAWAY') {
-      cameraRef.current.set(0, 13, zSign * 21);
+      cameraRef.current.set(zSign * 8, 13, zSign * 21);
     } else if (play.type === 'FREE_THROW') {
-      cameraRef.current.set(0, 13, zSign * 22);
+      cameraRef.current.set(zSign * 8, 13, zSign * 22);
     } else {
-      cameraRef.current.set(0, 13, zSign * 20);
+      cameraRef.current.set(zSign * 8, 13, zSign * 20);
     }
   }, [play, basketZ]);
 
