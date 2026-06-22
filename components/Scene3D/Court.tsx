@@ -14,20 +14,20 @@ export function BasketballCourt() {
 
       {/* Center circle */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <ringGeometry args={[1.5, 1.57, 64]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
+        <ringGeometry args={[1.5, 1.62, 64]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
       </mesh>
       {/* Center line */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <planeGeometry args={[15, 0.06]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
+        <planeGeometry args={[15, 0.1]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
       </mesh>
 
       {/* Court boundary lines */}
-      <CourtLine position={[-7.44, 0.01, 0]} size={[0.06, 28.2]} />
-      <CourtLine position={[7.44, 0.01, 0]} size={[0.06, 28.2]} />
-      <CourtLine position={[0, 0.01, -14.05]} size={[15, 0.06]} />
-      <CourtLine position={[0, 0.01, 14.05]} size={[15, 0.06]} />
+      <CourtLine position={[-7.44, 0.01, 0]} size={[0.1, 28.2]} />
+      <CourtLine position={[7.44, 0.01, 0]} size={[0.1, 28.2]} />
+      <CourtLine position={[0, 0.01, -14.05]} size={[15, 0.1]} />
+      <CourtLine position={[0, 0.01, 14.05]} size={[15, 0.1]} />
 
       {/* Paint areas — one per basket */}
       <PaintArea basketZ={-12.5} />
@@ -56,7 +56,7 @@ function CourtLine({ position, size }: { position: [number, number, number]; siz
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={position}>
       <planeGeometry args={size} />
-      <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
+      <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
     </mesh>
   );
 }
@@ -78,10 +78,6 @@ function PaintArea({ basketZ }: { basketZ: number }) {
   const freeThrowZ = basketZ + towardCenter * 4.5;
   const paintCenterZ = (baselineZ + freeThrowZ) / 2;
   const paintLen = Math.abs(freeThrowZ - baselineZ); // ≈ 6.1 units
-  // Semicircle at free throw line that faces center court:
-  //   towardCenter = +1 → needs y-rot = π (flip ring so it opens toward +z)
-  //   towardCenter = −1 → y-rot = 0   (ring already opens toward −z)
-  // Outside half opens toward center court; inside half opens toward baseline
   const arcRotY = towardCenter > 0 ? Math.PI : 0;
   const arcRotYInside = towardCenter > 0 ? 0 : Math.PI;
 
@@ -95,36 +91,36 @@ function PaintArea({ basketZ }: { basketZ: number }) {
 
       {/* Free throw line */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, freeThrowZ]}>
-        <planeGeometry args={[4.8, 0.06]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.55} transparent />
+        <planeGeometry args={[4.8, 0.1]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
 
       {/* Free throw circle — outside half (toward center court) */}
       <mesh rotation={[-Math.PI / 2, arcRotY, 0]} position={[0, 0.016, freeThrowZ]}>
-        <ringGeometry args={[1.7, 1.9, 64, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.8} transparent />
+        <ringGeometry args={[1.7, 1.88, 64, 1, 0, Math.PI]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
 
-      {/* Free throw circle — inside half (toward baseline / into key) — dashed appearance via lower opacity */}
+      {/* Free throw circle — inside half (toward baseline) — dashed look via lower opacity */}
       <mesh rotation={[-Math.PI / 2, arcRotYInside, 0]} position={[0, 0.017, freeThrowZ]}>
-        <ringGeometry args={[1.7, 1.9, 64, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.38} transparent />
+        <ringGeometry args={[1.7, 1.88, 64, 1, 0, Math.PI]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.5} transparent />
       </mesh>
 
       {/* Lane (boundary) lines */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-2.4, 0.011, paintCenterZ]}>
-        <planeGeometry args={[0.06, paintLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.45} transparent />
+        <planeGeometry args={[0.1, paintLen]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[2.4, 0.011, paintCenterZ]}>
-        <planeGeometry args={[0.06, paintLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.45} transparent />
+        <planeGeometry args={[0.1, paintLen]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
 
-      {/* Restricted area arc — 4 ft radius at basket, opens toward center */}
+      {/* Restricted area arc — opens toward center court */}
       <mesh rotation={[-Math.PI / 2, arcRotY, 0]} position={[0, 0.016, basketZ]}>
-        <ringGeometry args={[1.10, 1.27, 48, 1, 0, Math.PI]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.55} transparent />
+        <ringGeometry args={[1.10, 1.28, 48, 1, 0, Math.PI]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
       </mesh>
     </group>
   );
@@ -150,30 +146,27 @@ function ThreePointArc({ basketZ }: { basketZ: number }) {
   const thetaStart = Math.acos(cornerX / innerR);   // ≈ 0.359 rad
   const thetaLength = Math.PI - 2 * thetaStart;     // ≈ 2.423 rad
 
-  // Extend the straight 0.4 units past the arc junction so the arc overlaps it —
-  // the arc ring sits 0.002 higher (y=0 vs y=-0.002) so it draws on top, hiding
-  // the straight's endpoint and making the corner look seamless.
   const baselineDist = 1.6;
   const overlapExtend = 0.4;
-  const straightLen = baselineDist + arcJunctionZ + overlapExtend;          // ≈ 4.477
-  const straightCenterZ = towardCenter * (arcJunctionZ + overlapExtend - baselineDist) / 2; // ≈ ±0.639
+  const straightLen = baselineDist + arcJunctionZ + overlapExtend;
+  const straightCenterZ = towardCenter * (arcJunctionZ + overlapExtend - baselineDist) / 2;
 
   return (
     <group position={[0, 0.013, basketZ]}>
-      {/* Corner straight lines — sit 0.002 below arc so arc draws on top at junction */}
+      {/* Corner straight lines */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-cornerX, -0.002, straightCenterZ]}>
-        <planeGeometry args={[0.06, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
+        <planeGeometry args={[0.1, straightLen]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[cornerX, -0.002, straightCenterZ]}>
-        <planeGeometry args={[0.06, straightLen]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
+        <planeGeometry args={[0.1, straightLen]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
 
-      {/* Arc — sits above the straights (y=0) and covers their ends at the junction */}
+      {/* Arc */}
       <mesh rotation={[-Math.PI / 2, arcRotY, 0]}>
-        <ringGeometry args={[7.05, 7.22, 64, 1, thetaStart, thetaLength]} />
-        <meshStandardMaterial color="#ffffff" opacity={0.65} transparent />
+        <ringGeometry args={[7.05, 7.25, 64, 1, thetaStart, thetaLength]} />
+        <meshStandardMaterial color="#ffffff" opacity={0.95} transparent />
       </mesh>
     </group>
   );
