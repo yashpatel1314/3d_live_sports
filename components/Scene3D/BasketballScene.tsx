@@ -132,8 +132,8 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
         basketZ={basketZ}
       />
 
-      <Ball play={play} progress={progress} basketZ={basketZ} />
-      <ArcPreview play={play} opacity={1 - progress} basketZ={basketZ} />
+      <Ball play={play} progress={progress} basketZ={basketZ} playerPos={[0, 0, shooterZ]} />
+      <ArcPreview play={play} opacity={1 - progress} basketZ={basketZ} playerPos={[0, 0, shooterZ]} />
       <ScoreParticles active={showParticles} teamColor={playerColor} />
 
       <fog attach="fog" args={['#07071a', 45, 95]} />
