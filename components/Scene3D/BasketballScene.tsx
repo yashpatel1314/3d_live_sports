@@ -39,8 +39,8 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
   // Camera position target
   const cameraRef = useRef<Vector3>(new Vector3(0, 12, 20));
   // LookAt: two refs so we can lerp smoothly between sides
-  const lookAtTarget = useRef<Vector3>(new Vector3(0, 2, -8));
-  const lookAtCurrent = useRef<Vector3>(new Vector3(0, 2, -8));
+  const lookAtTarget = useRef<Vector3>(new Vector3(0, 2, -10));
+  const lookAtCurrent = useRef<Vector3>(new Vector3(0, 2, -10));
 
   useEffect(() => {
     if (!play || play === lastPlay.current) return;
@@ -55,21 +55,26 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
     // zSign: which direction from basket toward center (+1 for home end, -1 for away end)
     const zSign = isAway ? -1 : 1;
 
-    // Smoothly pan lookAt to whichever basket we're watching
-    lookAtTarget.current.set(0, 2, isAway ? 8 : -8);
+    // LookAt: aim toward the active basket (not center court)
+    lookAtTarget.current.set(0, 2, isAway ? 10 : -10);
 
-    // Set camera position based on play type (always on center-court side of the action)
+    // Camera: always OUTSIDE the court boundary (|z| > 14.1) so the full half-court is visible.
+    // zSign * N places the camera on the center-court side of the active basket.
+    // x offset gives a broadcast side-angle; y controls height.
     if (play.type === 'DUNK' || play.type === 'ALLEY_OOP') {
-      cameraRef.current.set(3, 6, zSign * 6);
+      // Low, dramatic angle — still outside court
+      cameraRef.current.set(8, 11, zSign * 20);
     } else if (play.type === 'THREE_POINTER') {
       const dist = (play.distance ?? 26) / 3.33;
-      cameraRef.current.set(4, 7, basketZ + zSign * (dist + 4));
+      // Pull further back for long range — cap at 26 so we don't fly into space
+      cameraRef.current.set(8, 14, zSign * Math.min(dist + 16, 26));
     } else if (play.type === 'FADEAWAY') {
-      cameraRef.current.set(5, 8, zSign * 3);
+      cameraRef.current.set(8, 13, zSign * 21);
     } else if (play.type === 'FREE_THROW') {
-      cameraRef.current.set(3, 6, zSign * 5);
+      // Straight-on, slightly higher — no side angle for FT
+      cameraRef.current.set(3, 13, zSign * 22);
     } else {
-      cameraRef.current.set(4, 8, zSign * 2);
+      cameraRef.current.set(8, 13, zSign * 20);
     }
   }, [play, basketZ]);
 
@@ -116,6 +121,12 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
       <pointLight position={[0, 15, -12.5]} intensity={0.6} color="#FFD080" />
       <pointLight position={[0, 15, 12.5]} intensity={0.6} color="#FFD080" />
 
+      {/* Arena floor — fills the black void around and below the hardwood */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]} receiveShadow>
+        <planeGeometry args={[120, 120]} />
+        <meshStandardMaterial color="#080814" roughness={1} metalness={0} />
+      </mesh>
+
       <BasketballCourt />
 
       <PlayerFigure
@@ -130,7 +141,7 @@ function SceneContent({ play, teamColor, onAnimComplete, basketZ }: SceneContent
       <ArcPreview play={play} opacity={1 - progress} basketZ={basketZ} />
       <ScoreParticles active={showParticles} teamColor={playerColor} />
 
-      <fog attach="fog" args={['#0a0a1a', 30, 80]} />
+      <fog attach="fog" args={['#07071a', 45, 95]} />
     </>
   );
 }
@@ -153,7 +164,7 @@ export function BasketballScene({ play, teamColor = '#FF6B00', homeTeamId, onAni
     <div className="w-full h-full">
       <Canvas
         shadows
-        camera={{ position: [0, 12, 20], fov: 55 }}
+        camera={{ position: [0, 15, 26], fov: 52 }}
         gl={{ antialias: true, alpha: false }}
         style={{ background: 'linear-gradient(180deg, #0a0a1e 0%, #0d1a0d 100%)' }}
       >
